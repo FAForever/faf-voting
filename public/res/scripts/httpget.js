@@ -4,7 +4,6 @@ function httpGet(addr, callback){
 	http.setRequestHeader("Content-type","application/x-www-form-urlencoded");
 	
 	http.send();
-	console.log(addr);
 	
 	http.onload = function() {
 		callback(http.responseText);

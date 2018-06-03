@@ -12,17 +12,14 @@ const OAuth2Strategy = require('passport-oauth2');
 const app = express();
 const path = require('path');
 
+const api = JSON.parse(fs.readFileSync('_private/api.json'));
+const sessionData = JSON.parse(fs.readFileSync('_private/session.json'));
 const client = JSON.parse(fs.readFileSync('_private/client.json'));
-const clientId = client.id;
-const clientSecret = client.secret;
-
-// const apiURL = "https://api.faforever.com/";
-const apiURL = "http://api.faf.micheljung.ch:10080";
-app.use(session({
-	secret: 'K4QFaexu424Ld*zU',
-	resave: false,
-	saveUninitialized: false
-}));
+app.use(
+	session(
+		sessionData
+		)
+	);
 
 app.use(passport.initialize());
 app.use(passport.session());
@@ -42,16 +39,16 @@ passport.deserializeUser(function(user, done) {
 
 passport.use(
 	new OAuth2Strategy({
-		authorizationURL: apiURL+'/oauth/authorize',
-		tokenURL: apiURL+'/oauth/token',
-		clientID: clientId,
-		clientSecret: clientSecret,
+		authorizationURL: api.URL+'/oauth/authorize',
+		tokenURL: api.URL+'/oauth/token',
+		clientID: client.id,
+		clientSecret: client.secret,
 		callbackURL: "http://rk.sytes.net:3001/auth"
 	},
 	function(accessToken, refreshToken, profile, done) {
 		request.get(
 			{
-				url: apiURL+ '/me', 
+				url: api.URL+ '/me', 
 				headers: {'Authorization': 'Bearer ' + accessToken}
 			},
 			function (e, r, body) {
@@ -90,7 +87,7 @@ app.get('/authed/getSubjects',
 			const token = req.session.passport.user.data.attributes.token;
 		
 			request({
-				url: apiURL+"/voting/votingSubjectsAbleToVote",
+				url: api.URL+"/voting/votingSubjectsAbleToVote",
 				method: 'GET',
 				headers : {
 					"Authorization" : "Bearer "+token
@@ -121,7 +118,7 @@ app.get('/authed/getQuestions',
 				return;
 			}
 			request({
-				url: apiURL+"/data/votingQuestion?filter=votingSubject.id=="+id+"&include=votingChoices",
+				url: api.URL+"/data/votingQuestion?filter=votingSubject.id=="+id+"&include=votingChoices",
 				method: 'GET',
 				headers : {
 					"Authorization" : "Bearer "+token
@@ -154,7 +151,7 @@ app.get('/authed/vote',
 			const voteJSON = Buffer.from((vote), 'base64').toString();
 			
 			request({
-				url: apiURL+"/voting/vote",
+				url: api.URL+"/voting/vote",
 				method: 'POST',
 				headers : {
 					"Authorization" : "Bearer "+token,
@@ -181,7 +178,7 @@ app.get('/authed/vote',
 );
 
 app.get('/login', function(req, res){
-	res.redirect(apiURL+"/oauth/authorize?client_id=03caee76-e0ef-4188-b622-698221c689ac&response_type=code&redirect_uri=http%3A%2F%2Frk.sytes.net%3A3001%2Fauth");
+	res.redirect(api.URL+"/oauth/authorize?client_id="+client.id+"&response_type=code&redirect_uri=http%3A%2F%2Frk.sytes.net%3A3001%2Fauth");
 });
 
 app.listen(3001, function () {

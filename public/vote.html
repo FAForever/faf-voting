@@ -29,6 +29,17 @@
 				let parsedQuestions = JSON.parse(json).data;
 				let answers = JSON.parse(json).included;
 				
+				if (answers == undefined || parsedQuestions == undefined){
+					httpGet("/authed/getSubjects", function(subjects){
+						receiveSubjects(subjects);
+						let receiver = document.getElementById('receiverZone');
+						let p = document.createElement('p');
+						p.textContent = 'There was an error parsing this subject. Please select another!';
+						receiver.appendChild(p);
+					});
+					return;
+				}
+				
 				let questions = {};
 				
 				/// Populating questions
@@ -154,8 +165,8 @@
 					const questionContent = document.getElementById('question-'+i);
 					for (var j = 0; j < question.maxAnswers; j++){
 						const answer = document.getElementById("question-"+i+"-ordinal-"+j);
-						if (answer.value == -1){	/// Skipping "--" elements
-							continue;
+						if (answer.value == -1){	/// Breaking if one ordinal is missing. There shouldn't be any other after it.
+							break;
 						}
 						votingAnswers.push({
 							"votingQuestion":{
@@ -182,6 +193,15 @@
 			function sendVote(voteObject){
 				httpGet("/authed/vote?vote="+btoa(JSON.stringify(voteObject)), function(){
 					document.getElementById('receiverZone').innerHTML = "Vote sent.";
+					
+					let returnButton = document.createElement('button');
+					returnButton.textContent = "Vote again...";
+					returnButton.addEventListener("click", function(e) {
+						location.reload(true);
+					});
+					
+					document.getElementById('receiverZone').appendChild(returnButton);
+					
 				});
 			}
 			
