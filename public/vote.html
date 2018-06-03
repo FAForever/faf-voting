@@ -109,6 +109,12 @@
 					
 					let answersDiv = document.createElement("div");
 					
+					if (thisQuestion.maxAnswers > 1){
+						let warning = document.createElement('p');
+						warning.appendChild(document.createTextNode("WARNING - Don't take the same choice multiple times for the same answer or the vote will be automatically discarded by the API"));
+						warning.style.color='red';
+						answersDiv.append(warning);
+					}
 					if (thisQuestion.maxAnswers > 2){
 						let warning = document.createElement('p');
 						warning.appendChild(document.createTextNode("WARNING - Every choice field placed below an empty filled will be ignored."));
