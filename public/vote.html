@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+			<LINK href="res/style/style.css" rel="stylesheet" type="text/css">
+			<!--<link rel="icon" href="favicon.gif"  type="image/gif"/>-->
+			<link rel="icon" href="favicon.png" />
+			<title>Vote</title>
+		</meta>
+		<script src="res/scripts/httpget.js"></script>
+		<script>
+			
+			let votingSubject;
+			
+			/// On load, immediatly fetch voting subjects
+			window.onload = function(e){
+				httpGet("/authed/getSubjects", receiveSubjects);
+			}
+			
+			/// GET questions
+			function selectSubject(id){
+				votingSubject = id;
+				httpGet("/authed/getQuestions?subjectId="+id, receiveQuestions);
+			}
+			
+			/// Parse and restructure questions
+			function receiveQuestions(json){
+				let parsedQuestions = JSON.parse(json).data;
+				let answers = JSON.parse(json).included;
+				
+				let questions = {};
+				
+				/// Populating questions
+				for (let i = 0; i < parsedQuestions.length; i++){
+					const dataSet = parsedQuestions[i];
+					questions[dataSet.id] = {
+						"maxAnswers":dataSet.attributes.maxAnswers,
+						"question":dataSet.attributes.question,
+						"description":dataSet.attributes.description,
+						"updateTime":dataSet.attributes.updateTime
+					};
+				}
+					
+				/// Linking answers to questions
+				for (let i = 0; i < answers.length; i++){
+					const answer = answers[i];
+					const parentQuestionId = answer.relationships.votingQuestion.data.id;
+					if (questions[parentQuestionId]["answers"] == undefined){
+						questions[parentQuestionId]["answers"] = [];
+					}
+					questions[parentQuestionId]["answers"].push({
+						"id":answer.id,
+						"choiceText":answer.attributes.choiceText,
+						"description":answer.attributes.description
+					});
+				}
+				displayQuestions(questions);
+			}
+			
+			/// Display
+			function displayQuestions(questions){
+				let receiver = document.getElementById('receiverZone');
+				receiver.innerHTML = '';
+				let div = document.createElement("div");
+				
+				for (i in questions) {
+					const thisQuestion = questions[i];
+					
+					let questionContent = document.createElement("div");
+					questionContent.id = "question-"+i;
+					
+					let title = document.createElement("h2");
+					title.innerHTML = thisQuestion.question;
+					
+					let content = document.createElement("p");
+					content.innerHTML = thisQuestion.description;
+					
+					let choicesDescription = document.createElement("div");
+					choicesDescription.classList.add('choiceDescription');
+					for (k in thisQuestion.answers){
+						const answer = thisQuestion.answers[k];
+						let thisAnswerDiv = document.createElement("div");
+						
+						let h = document.createElement("h3");
+						h.innerHTML = answer.choiceText;
+						
+						let p = document.createElement("p");
+						p.innerHTML = answer.description;
+						
+						thisAnswerDiv.appendChild(h);
+						thisAnswerDiv.appendChild(p);
+						
+						choicesDescription.appendChild(thisAnswerDiv);
+					}
+					
+					let answersDiv = document.createElement("div");
+					
+					for (var j = 0; j < thisQuestion.maxAnswers; j++){
+						let answerSelect = document.createElement('select');
+						answerSelect.id = "question-"+i+"-ordinal-"+j;
+						
+						for (k in thisQuestion.answers){
+							const answer = thisQuestion.answers[k];
+							let option = document.createElement("option");
+							option.value = answer.id;
+							option.text = answer.choiceText;	
+							
+							answerSelect.appendChild(option);
+						}
+						// Displaying the "--" (no opinion) if more than one answer possible
+						if (j > 0){
+							let option = document.createElement("option");
+							option.value = -1;
+							option.text = "-";	
+							option.selected = 1;
+							answerSelect.appendChild(option);
+						}
+						
+						let selectWrap = document.createElement('div');
+						selectWrap.textContent = "Choice #"+(j+1);
+						selectWrap.appendChild(answerSelect);
+						
+						answersDiv.appendChild(selectWrap);
+							
+					}
+					
+					questionContent.appendChild(title);
+					questionContent.appendChild(content);
+					questionContent.appendChild(choicesDescription);
+					questionContent.appendChild(answersDiv);
+					
+					div.appendChild(questionContent);
+				}
+				
+				let b = document.createElement('button');
+				b.textContent = "Confirm";
+				b.addEventListener("click", function(e) {
+					calculateVote(questions);
+				});
+					
+				receiver.appendChild(div);
+				receiver.appendChild(b);
+			}
+			
+			function calculateVote(questions){
+				let votingAnswers = [];
+				for (i in questions){
+					const question = questions[i];
+					const questionContent = document.getElementById('question-'+i);
+					for (var j = 0; j < question.maxAnswers; j++){
+						const answer = document.getElementById("question-"+i+"-ordinal-"+j);
+						if (answer.value == -1){	/// Skipping "--" elements
+							continue;
+						}
+						votingAnswers.push({
+							"votingQuestion":{
+								"id": parseFloat(i)
+							},
+							"alternativeOrdinal":j,
+							"votingChoice":{
+								"id":parseFloat(answer.value)
+							}
+						});
+					}
+				};
+				
+				const finalObject = {
+					"votingSubject":{
+						"id":parseFloat(votingSubject)
+					},
+					"votingAnswers":votingAnswers
+				};
+				
+				sendVote(finalObject);
+			}
+			
+			function sendVote(voteObject){
+				httpGet("/authed/vote?vote="+btoa(JSON.stringify(voteObject)), function(){
+					document.getElementById('receiverZone').innerHTML = "Vote sent.";
+				});
+			}
+			
+			/// Parse subjects
+			function receiveSubjects(json){
+				let subjects = JSON.parse(json).data;
+				let receiver = document.getElementById('receiverZone');
+				receiver.innerHTML = '';
+				
+				let selectList = document.createElement('select');
+				selectList.id = "subjectSelector";
+				
+				for (let i = 0; i < subjects.length; i++) {
+					let option = document.createElement("option");
+					option.value = subjects[i].id;
+					option.text = subjects[i].attributes.subject;
+					selectList.appendChild(option);
+				}
+				
+				let selectButton = document.createElement('button');
+				selectButton.textContent = "Validate";
+				selectButton.addEventListener("click", function(e) {
+					selectSubject(selectList.value);
+				});
+				
+				receiver.appendChild(selectList);
+				receiver.appendChild(selectButton);
+			}
+		</script>
+	</head>
+	<body>
+		<h1>Voting app</h1>
+		<div id="receiverZone">
+			Please wait...
+		</div>
+	</body>
+</html>
