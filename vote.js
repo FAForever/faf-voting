@@ -160,7 +160,6 @@ app.get('/authed/vote',
 				body: voteJSON
 			},
 			function (e, r, returnBody){
-				console.log("Sent vote");
 				if (r.statusCode != 200){
 					console.log(returnBody);
 					res.status(500).send(returnBody);

@@ -9,16 +9,15 @@ a{
 	color:inherit;
 }
 .choiceDescription{
-	display:flex;
 	flex-direction:row;
-	justify-content:space-around;
-	flex-wrap:wrap;
+	display: flex;
+	justify-content: space-around;
+	flex-flow: row wrap;
 }
 .choiceDescription div{
 	padding:25px;
 	margin:25px;
 	border:1px dotted grey;
-	flex-grow:1;
     flex-basis: 0;
-	min-width:200px;
+	min-width:320px;
 }

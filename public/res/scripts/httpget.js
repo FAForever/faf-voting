@@ -6,6 +6,6 @@ function httpGet(addr, callback){
 	http.send();
 	
 	http.onload = function() {
-		callback(http.responseText);
+		callback(http.responseText, http.statusCode);
 	}
 }

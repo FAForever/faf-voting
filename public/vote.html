@@ -109,6 +109,15 @@
 					
 					let answersDiv = document.createElement("div");
 					
+					if (thisQuestion.maxAnswers > 2){
+						let warning = document.createElement('p');
+						warning.appendChild(document.createTextNode("WARNING - Every choice field placed below an empty filled will be ignored."));
+						warning.appendChild(document.createElement("br"));
+						warning.appendChild(document.createTextNode("Fill the boxes in the order, from top to bottom."));
+						warning.style.color='red';
+						answersDiv.append(warning);
+					}
+					
 					for (var j = 0; j < thisQuestion.maxAnswers; j++){
 						let answerSelect = document.createElement('select');
 						answerSelect.id = "question-"+i+"-ordinal-"+j;
@@ -191,17 +200,21 @@
 			}
 			
 			function sendVote(voteObject){
-				httpGet("/authed/vote?vote="+btoa(JSON.stringify(voteObject)), function(){
-					document.getElementById('receiverZone').innerHTML = "Vote sent.";
-					
-					let returnButton = document.createElement('button');
-					returnButton.textContent = "Vote again...";
-					returnButton.addEventListener("click", function(e) {
-						location.reload(true);
-					});
-					
-					document.getElementById('receiverZone').appendChild(returnButton);
-					
+				httpGet("/authed/vote?vote="+btoa(JSON.stringify(voteObject)), function(response, status){
+					if (status == 200){
+						document.getElementById('receiverZone').innerHTML = "Vote sent.";
+						
+						let returnButton = document.createElement('button');
+						returnButton.textContent = "Vote again...";
+						returnButton.addEventListener("click", function(e) {
+							location.reload(true);
+						});
+						
+						document.getElementById('receiverZone').appendChild(returnButton);
+					}
+					else{
+						console.log(response, status);
+					}
 				});
 			}
 			
@@ -231,7 +244,7 @@
 				}
 				
 				let selectButton = document.createElement('button');
-				selectButton.textContent = "Validate";
+				selectButton.textContent = "Select";
 				selectButton.addEventListener("click", function(e) {
 					selectSubject(selectList.value);
 				});
