@@ -8,6 +8,7 @@
 			<title>Vote</title>
 		</meta>
 		<script src="res/scripts/httpget.js"></script>
+		<script src="res/scripts/shuffle.js"></script>
 		<script>
 			
 			let votingSubject;
@@ -77,6 +78,8 @@
 					
 					let choicesDescription = document.createElement("div");
 					choicesDescription.classList.add('choiceDescription');
+					thisQuestion.answers = shuffle(thisQuestion.answers);
+					
 					for (k in thisQuestion.answers){
 						const answer = thisQuestion.answers[k];
 						let thisAnswerDiv = document.createElement("div");
@@ -98,6 +101,8 @@
 					for (var j = 0; j < thisQuestion.maxAnswers; j++){
 						let answerSelect = document.createElement('select');
 						answerSelect.id = "question-"+i+"-ordinal-"+j;
+						
+						thisQuestion.answers = shuffle(thisQuestion.answers);
 						
 						for (k in thisQuestion.answers){
 							const answer = thisQuestion.answers[k];
@@ -186,8 +191,17 @@
 				let receiver = document.getElementById('receiverZone');
 				receiver.innerHTML = '';
 				
+				let pickSubjectH = document.createElement('h2');
+				pickSubjectH.textContent = "Pick a voting subject";
+				
 				let selectList = document.createElement('select');
 				selectList.id = "subjectSelector";
+				
+				if (subjects.length <= 0){
+					pickSubjectH.textContent = "You have no vote subjects available!";
+					receiver.appendChild(pickSubjectH);
+					return;
+				}
 				
 				for (let i = 0; i < subjects.length; i++) {
 					let option = document.createElement("option");
@@ -201,7 +215,7 @@
 				selectButton.addEventListener("click", function(e) {
 					selectSubject(selectList.value);
 				});
-				
+				receiver.appendChild(pickSubjectH);
 				receiver.appendChild(selectList);
 				receiver.appendChild(selectButton);
 			}
@@ -210,7 +224,15 @@
 	<body>
 		<h1>Voting app</h1>
 		<div id="receiverZone">
-			Please wait...
+			<p>
+				Fetching vote subjects...
+			</p>
+			<p>
+				<img src="res/images/pokabu-loading.gif">
+			</p>
+			<p>
+				This should take a few seconds!
+			</p>
 		</div>
 	</body>
 </html>
