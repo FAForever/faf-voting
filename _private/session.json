@@ -1,5 +1,0 @@
-{
-	"secret": "mySecretString",
-	"resave": false,
-	"saveUninitialized": false
-}

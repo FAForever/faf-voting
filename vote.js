@@ -12,14 +12,18 @@ const OAuth2Strategy = require('passport-oauth2');
 const app = express();
 const path = require('path');
 
-const api = JSON.parse(fs.readFileSync('_private/api.json'));
-const sessionData = JSON.parse(fs.readFileSync('_private/session.json'));
-const client = JSON.parse(fs.readFileSync('_private/client.json'));
-app.use(
-	session(
-		sessionData
-		)
-	);
+const API_URL = process.env.API_URL;
+
+const CLIENT_ID = process.env.CLIENT_ID,
+      CLIENT_SECRET = process.env.CLIENT_SECRET,
+      CALLBACK_URL = process.env.CALLBACK_URL || "https://voting.faforever.com/auth";
+
+app.use(session({
+      "secret": process.env.SESSION_SECRET,
+      "resave": true,
+      "saveUninitialized": true
+    })
+);
 
 app.use(passport.initialize());
 app.use(passport.session());
@@ -30,29 +34,30 @@ app.use("/res", express.static(__dirname + '/public/res'));
 
 
 passport.serializeUser(function(user, done) {
-  done(null, user);
+  done(null, JSON.stringify(user));
 });
 
 passport.deserializeUser(function(user, done) {
-  done(null, user);
+  done(null, JSON.parse(user));
 });
 
 passport.use(
 	new OAuth2Strategy({
-		authorizationURL: api.URL+'/oauth/authorize',
-		tokenURL: api.URL+'/oauth/token',
-		clientID: client.id,
-		clientSecret: client.secret,
-		callbackURL: "http://rk.sytes.net:3001/auth"
+		authorizationURL: API_URL+'/oauth/authorize',
+		tokenURL: API_URL+'/oauth/token',
+		clientID: CLIENT_ID,
+		clientSecret: CLIENT_SECRET,
+		callbackURL: "https://voting.faforever.com/auth"
 	},
 	function(accessToken, refreshToken, profile, done) {
 		request.get(
 			{
-				url: api.URL+ '/me', 
+				url: API_URL+ '/me', 
 				headers: {'Authorization': 'Bearer ' + accessToken}
 			},
 			function (e, r, body) {
 				if (r.statusCode != 200) {
+                                        console.log("Auth failure: " + r.statusCode);
 					return done(null);
 				}
 				let user = JSON.parse(body);
@@ -84,10 +89,10 @@ app.get('/',
 app.get('/authed/getSubjects',
 	function (req, res){
 		if (req.isAuthenticated()){
-			const token = req.session.passport.user.data.attributes.token;
+			const token = req.user.data.attributes.token;
 		
 			request({
-				url: api.URL+"/voting/votingSubjectsAbleToVote",
+				url: API_URL+"/voting/votingSubjectsAbleToVote",
 				method: 'GET',
 				headers : {
 					"Authorization" : "Bearer "+token
@@ -110,15 +115,16 @@ app.get('/authed/getSubjects',
 );
 
 app.get('/authed/getQuestions',
+	passport.authenticate('oauth2'),
 	function (req, res){
 		if (req.isAuthenticated()){
-			const token = req.session.passport.user.data.attributes.token;
+			const token = req.user.data.attributes.token;
 			const id = req.query.subjectId;
 			if (id == undefined){
 				return;
 			}
 			request({
-				url: api.URL+"/data/votingQuestion?filter=votingSubject.id=="+id+"&include=votingChoices",
+				url: API_URL+"/data/votingQuestion?filter=votingSubject.id=="+id+"&include=votingChoices",
 				method: 'GET',
 				headers : {
 					"Authorization" : "Bearer "+token
@@ -141,17 +147,18 @@ app.get('/authed/getQuestions',
 );
 
 app.get('/authed/vote',
+	passport.authenticate('oauth2'),
 	function (req, res){
 		if (req.isAuthenticated()){
 			const vote = req.query.vote;
 			if (vote == undefined){
 				return;
 			}
-			const token = req.session.passport.user.data.attributes.token;
+			const token = req.user.data.attributes.token;
 			const voteJSON = Buffer.from((vote), 'base64').toString();
 			
 			request({
-				url: api.URL+"/voting/vote",
+				url: API_URL+"/voting/vote",
 				method: 'POST',
 				headers : {
 					"Authorization" : "Bearer "+token,
@@ -177,13 +184,9 @@ app.get('/authed/vote',
 );
 
 app.get('/login', function(req, res){
-	res.redirect(api.URL+"/oauth/authorize?client_id="+client.id+"&response_type=code&redirect_uri=http%3A%2F%2Frk.sytes.net%3A3001%2Fauth");
+    res.redirect(API_URL+"/oauth/authorize?client_id="+CLIENT_ID+"&response_type=code&redirect_uri="+CALLBACK_URL);
 });
 
-app.listen(3001, function () {
-  console.log('Listening on port 3001!');
-  console.log('Go right there : ');
-  console.log('http://rk.sytes.net:3001/login');
+app.listen(3000, function () {
+    console.log('Listening on port 3000');
 });
-
-console.log("Script reached EOF\n======");
