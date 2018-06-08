@@ -1,277 +1,374 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-	<head>
-		<meta charset="utf-8">
-			<LINK href="res/style/style.css" rel="stylesheet" type="text/css">
-			<!--<link rel="icon" href="favicon.gif"  type="image/gif"/>-->
-			<link rel="icon" href="favicon.png" />
-			<title>Vote</title>
-		</meta>
-		<script src="res/scripts/httpget.js"></script>
-		<script src="res/scripts/shuffle.js"></script>
-		<script>
-			
-			let votingSubject;
-			
-			/// On load, immediatly fetch voting subjects
-			window.onload = function(e){
-				httpGet("/authed/getSubjects", receiveSubjects);
-			}
-			
-			/// GET questions
-			function selectSubject(id){
-				votingSubject = id;
-				httpGet("/authed/getQuestions?subjectId="+id, receiveQuestions);
-			}
-			
-			/// Parse and restructure questions
-			function receiveQuestions(json){
-				let parsedQuestions = JSON.parse(json).data;
-				let answers = JSON.parse(json).included;
-				
-				if (answers == undefined || parsedQuestions == undefined){
-					httpGet("/authed/getSubjects", function(subjects){
-						receiveSubjects(subjects);
-						let receiver = document.getElementById('receiverZone');
-						let p = document.createElement('p');
-						p.textContent = 'There was an error parsing this subject. Please select another!';
-						receiver.appendChild(p);
-					});
-					return;
-				}
-				
-				let questions = {};
-				
-				/// Populating questions
-				for (let i = 0; i < parsedQuestions.length; i++){
-					const dataSet = parsedQuestions[i];
-					questions[dataSet.id] = {
-						"maxAnswers":dataSet.attributes.maxAnswers,
-						"question":dataSet.attributes.question,
-						"description":dataSet.attributes.description,
-						"updateTime":dataSet.attributes.updateTime
-					};
-				}
-					
-				/// Linking answers to questions
-				for (let i = 0; i < answers.length; i++){
-					const answer = answers[i];
-					const parentQuestionId = answer.relationships.votingQuestion.data.id;
-					if (questions[parentQuestionId]["answers"] == undefined){
-						questions[parentQuestionId]["answers"] = [];
-					}
-					questions[parentQuestionId]["answers"].push({
-						"id":answer.id,
-						"choiceText":answer.attributes.choiceText,
-						"description":answer.attributes.description
-					});
-				}
-				displayQuestions(questions);
-			}
-			
-			/// Display
-			function displayQuestions(questions){
-				let receiver = document.getElementById('receiverZone');
-				receiver.innerHTML = '';
-				let div = document.createElement("div");
-				
-				for (i in questions) {
-					const thisQuestion = questions[i];
-					
-					let questionContent = document.createElement("div");
-					questionContent.id = "question-"+i;
-					
-					let title = document.createElement("h2");
-					title.innerHTML = thisQuestion.question;
-					
-					let content = document.createElement("p");
-					content.innerHTML = thisQuestion.description;
-					
-					let choicesDescription = document.createElement("div");
-					choicesDescription.classList.add('choiceDescription');
-					thisQuestion.answers = shuffle(thisQuestion.answers);
-					
-					for (k in thisQuestion.answers){
-						const answer = thisQuestion.answers[k];
-						let thisAnswerDiv = document.createElement("div");
-						
-						let h = document.createElement("h3");
-						h.innerHTML = answer.choiceText;
-						
-						let p = document.createElement("p");
-						p.innerHTML = answer.description;
-						
-						thisAnswerDiv.appendChild(h);
-						thisAnswerDiv.appendChild(p);
-						
-						choicesDescription.appendChild(thisAnswerDiv);
-					}
-					
-					let answersDiv = document.createElement("div");
-					
-					if (thisQuestion.maxAnswers > 1){
-						let warning = document.createElement('p');
-						warning.appendChild(document.createTextNode("WARNING - Don't take the same choice multiple times for the same answer or the vote will be automatically discarded by the API"));
-						warning.style.color='red';
-						answersDiv.append(warning);
-					}
-					if (thisQuestion.maxAnswers > 2){
-						let warning = document.createElement('p');
-						warning.appendChild(document.createTextNode("WARNING - Every choice field placed below an empty filled will be ignored."));
-						warning.appendChild(document.createElement("br"));
-						warning.appendChild(document.createTextNode("Fill the boxes in the order, from top to bottom."));
-						warning.style.color='red';
-						answersDiv.append(warning);
-					}
-					
-					for (var j = 0; j < thisQuestion.maxAnswers; j++){
-						let answerSelect = document.createElement('select');
-						answerSelect.id = "question-"+i+"-ordinal-"+j;
-						
-						thisQuestion.answers = shuffle(thisQuestion.answers);
-						
-						for (k in thisQuestion.answers){
-							const answer = thisQuestion.answers[k];
-							let option = document.createElement("option");
-							option.value = answer.id;
-							option.text = answer.choiceText;	
-							
-							answerSelect.appendChild(option);
-						}
-						// Displaying the "--" (no opinion) if more than one answer possible
-						if (j > 0){
-							let option = document.createElement("option");
-							option.value = -1;
-							option.text = "-";	
-							option.selected = 1;
-							answerSelect.appendChild(option);
-						}
-						
-						let selectWrap = document.createElement('div');
-						selectWrap.textContent = "Choice #"+(j+1);
-						selectWrap.appendChild(answerSelect);
-						
-						answersDiv.appendChild(selectWrap);
-							
-					}
-					
-					questionContent.appendChild(title);
-					questionContent.appendChild(content);
-					questionContent.appendChild(choicesDescription);
-					questionContent.appendChild(answersDiv);
-					
-					div.appendChild(questionContent);
-				}
-				
-				let b = document.createElement('button');
-				b.textContent = "Confirm";
-				b.addEventListener("click", function(e) {
-					calculateVote(questions);
-				});
-					
-				receiver.appendChild(div);
-				receiver.appendChild(b);
-			}
-			
-			function calculateVote(questions){
-				let votingAnswers = [];
-				for (i in questions){
-					const question = questions[i];
-					const questionContent = document.getElementById('question-'+i);
-					for (var j = 0; j < question.maxAnswers; j++){
-						const answer = document.getElementById("question-"+i+"-ordinal-"+j);
-						if (answer.value == -1){	/// Breaking if one ordinal is missing. There shouldn't be any other after it.
-							break;
-						}
-						votingAnswers.push({
-							"votingQuestion":{
-								"id": parseFloat(i)
-							},
-							"alternativeOrdinal":j,
-							"votingChoice":{
-								"id":parseFloat(answer.value)
-							}
-						});
-					}
-				};
-				
-				const finalObject = {
-					"votingSubject":{
-						"id":parseFloat(votingSubject)
-					},
-					"votingAnswers":votingAnswers
-				};
-				
-				sendVote(finalObject);
-			}
-			
-			function sendVote(voteObject){
-				httpGet("/authed/vote?vote="+btoa(JSON.stringify(voteObject)), function(response, status){
-					if (status == 200){
-						document.getElementById('receiverZone').innerHTML = "Vote sent.";
-						
-						let returnButton = document.createElement('button');
-						returnButton.textContent = "Vote again...";
-						returnButton.addEventListener("click", function(e) {
-							location.reload(true);
-						});
-						
-						document.getElementById('receiverZone').appendChild(returnButton);
-					}
-					else{
-						console.log(response, status);
-					}
-				});
-			}
-			
-			/// Parse subjects
-			function receiveSubjects(json){
-				let subjects = JSON.parse(json).data;
-				let receiver = document.getElementById('receiverZone');
-				receiver.innerHTML = '';
-				
-				let pickSubjectH = document.createElement('h2');
-				pickSubjectH.textContent = "Pick a voting subject";
-				
-				let selectList = document.createElement('select');
-				selectList.id = "subjectSelector";
-				
-				if (subjects.length <= 0){
-					pickSubjectH.textContent = "You have no vote subjects available!";
-					receiver.appendChild(pickSubjectH);
-					return;
-				}
-				
-				for (let i = 0; i < subjects.length; i++) {
-					let option = document.createElement("option");
-					option.value = subjects[i].id;
-					option.text = subjects[i].attributes.subject;
-					selectList.appendChild(option);
-				}
-				
-				let selectButton = document.createElement('button');
-				selectButton.textContent = "Select";
-				selectButton.addEventListener("click", function(e) {
-					selectSubject(selectList.value);
-				});
-				receiver.appendChild(pickSubjectH);
-				receiver.appendChild(selectList);
-				receiver.appendChild(selectButton);
-			}
-		</script>
-	</head>
-	<body>
-		<h1>Voting app</h1>
-		<div id="receiverZone">
-			<p>
-				Fetching vote subjects...
-			</p>
-			<p>
-				<img src="res/images/pokabu-loading.gif">
-			</p>
-			<p>
-				This should take a few seconds!
-			</p>
-		</div>
-	</body>
+<head>
+  <title>FAF Voting App</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+  <link rel="icon" href="favicon.png"/>
+  <link rel="stylesheet" href="res/style/style.css" type="text/css"/>
+
+  <script src="res/scripts/httpget.js"></script>
+  <script src="res/scripts/shuffle.js"></script>
+  <script>
+
+    let votingSubjectId;
+
+    /// On load, immediatly fetch voting subjects
+    window.onload = function (e) {
+      httpGet("/authed/getSubjects", receiveSubjects);
+    }
+
+    /// GET questions
+    function selectSubject(subject) {
+      votingSubjectId = subject.id;
+      httpGet("/authed/getQuestions?subjectId=" + subject.id, json => receiveQuestions(json, subject));
+    }
+
+    /// Parse and restructure questions
+    function receiveQuestions(json, subject) {
+      let parsedQuestions = JSON.parse(json).data;
+      let answers = JSON.parse(json).included;
+
+      if (answers === undefined || parsedQuestions === undefined) {
+        httpGet("/authed/getSubjects", function (subjects) {
+          receiveSubjects(subjects);
+          let receiver = document.getElementById('receiverZone');
+          let p = document.createElement('p');
+          p.textContent = 'There was an error parsing this subject. Please select another!';
+          receiver.appendChild(p);
+        });
+        return;
+      }
+
+      let questions = {};
+
+      /// Populating questions
+      for (let i = 0; i < parsedQuestions.length; i++) {
+        const dataSet = parsedQuestions[i];
+        questions[dataSet.id] = {
+          "maxAnswers": dataSet.attributes.maxAnswers,
+          "question": dataSet.attributes.question,
+          "description": dataSet.attributes.description,
+          "updateTime": dataSet.attributes.updateTime
+        };
+      }
+
+      /// Linking answers to questions
+      for (let i = 0; i < answers.length; i++) {
+        const answer = answers[i];
+        const parentQuestionId = answer.relationships.votingQuestion.data.id;
+        if (questions[parentQuestionId]["answers"] === undefined) {
+          questions[parentQuestionId]["answers"] = [];
+        }
+        questions[parentQuestionId]["answers"].push({
+          "id": answer.id,
+          "choiceText": answer.attributes.choiceText,
+          "description": answer.attributes.description
+        });
+      }
+      displayQuestions(questions, subject);
+    }
+
+    /// Display
+    function displayQuestions(questions, subject) {
+      let receiver = document.getElementById('receiverZone');
+      receiver.innerHTML = '';
+
+      let subjectTitle = document.createElement("h1");
+      subjectTitle.innerHTML = subject.attributes.subject;
+      receiver.appendChild(subjectTitle);
+
+      let form = document.createElement('form');
+      let formGroup = document.createElement('div');
+      formGroup.className = "form-group";
+      form.appendChild(formGroup);
+      receiver.appendChild(formGroup);
+
+      for (i in questions) {
+        const thisQuestion = questions[i];
+
+        let card = document.createElement("div");
+        card.className = "card";
+        receiver.append(card);
+
+        let cardHeader = document.createElement("div");
+        cardHeader.className = "card-header";
+        cardHeader.innerHTML = thisQuestion.question;
+        card.append(cardHeader);
+
+        let cardBody = document.createElement("div");
+        cardBody.className = "card-body";
+        card.append(cardBody);
+
+        let cardText = document.createElement("p");
+        cardText.className = "card-text";
+        cardText.innerHTML = thisQuestion.description;
+        cardBody.append(cardText);
+
+        thisQuestion.answers = shuffle(thisQuestion.answers);
+
+        for (k in thisQuestion.answers) {
+          const answer = thisQuestion.answers[k];
+          let thisAnswerDiv = document.createElement("div");
+
+          let h = document.createElement("h4");
+          h.innerHTML = answer.choiceText;
+
+          let p = document.createElement("p");
+          p.innerHTML = answer.description;
+
+          thisAnswerDiv.appendChild(h);
+          thisAnswerDiv.appendChild(p);
+
+          cardBody.appendChild(thisAnswerDiv);
+        }
+
+        let answersDiv = document.createElement("div");
+
+        if (thisQuestion.maxAnswers > 2) {
+          let warning = document.createElement('div');
+          warning.className = "alert alert-danger";
+          warning.appendChild(document.createTextNode("WARNING - Every choice field placed below an empty filled will be ignored."));
+          warning.appendChild(document.createElement("br"));
+          warning.appendChild(document.createTextNode("Fill the boxes in the order, from top to bottom."));
+          answersDiv.append(warning);
+        }
+
+        let answerSelects = [];
+        for (let j = 0; j < thisQuestion.maxAnswers; j++) {
+          let answerSelect = document.createElement('select');
+          answerSelect.className = "form-control";
+          answerSelect.id = "question-" + i + "-ordinal-" + j;
+          answerSelects.push(answerSelect);
+
+          thisQuestion.answers = shuffle(thisQuestion.answers);
+
+          for (k in thisQuestion.answers) {
+            const answer = thisQuestion.answers[k];
+            let option = document.createElement("option");
+            option.value = answer.id;
+            option.text = answer.choiceText;
+
+            answerSelect.appendChild(option);
+          }
+
+          let option = document.createElement("option");
+          option.value = -1;
+          option.text = "-";
+          option.selected = 1;
+          answerSelect.appendChild(option);
+
+          let selectWrap = document.createElement('label');
+          selectWrap.textContent = "Choice #" + (j + 1);
+          selectWrap.appendChild(answerSelect);
+
+          answersDiv.appendChild(selectWrap);
+        }
+
+        for (const answerSelect of answerSelects) {
+          answerSelect.onchange = () => {
+            let otherSelects = answerSelects.filter(select => select !== answerSelect);
+            for (const otherSelect of otherSelects) {
+              for (const otherOption of otherSelect.options) {
+                otherOption.disabled = otherOption.value !== "-1"
+                  && otherOption.value === answerSelect.options[answerSelect.selectedIndex].value;
+              }
+            }
+          };
+        }
+
+        cardBody.appendChild(answersDiv);
+      }
+
+      let b = document.createElement('button');
+      b.textContent = "Confirm";
+      b.className = "btn btn-primary";
+      b.addEventListener("click", function (e) {
+        calculateVote(questions);
+      });
+
+      receiver.appendChild(formGroup);
+
+      let alert = document.createElement('div');
+      alert.className = "alert alert-danger";
+      alert.textContent = "Be aware that your vote is final and cannot be changed.";
+
+      receiver.appendChild(alert);
+      receiver.appendChild(b);
+    }
+
+    function calculateVote(questions) {
+      let votingAnswers = [];
+      for (i in questions) {
+        const question = questions[i];
+        for (let j = 0; j < question.maxAnswers; j++) {
+          const answer = document.getElementById("question-" + i + "-ordinal-" + j);
+          if (answer.value === "-1") {	/// Breaking if one ordinal is missing. There shouldn't be any other after it.
+            break;
+          }
+          votingAnswers.push({
+            "votingQuestion": {
+              "id": parseFloat(i)
+            },
+            "alternativeOrdinal": j,
+            "votingChoice": {
+              "id": parseFloat(answer.value)
+            }
+          });
+        }
+      }
+
+      const finalObject = {
+        "votingSubject": {
+          "id": parseFloat(votingSubjectId)
+        },
+        "votingAnswers": votingAnswers
+      };
+
+      sendVote(finalObject);
+    }
+
+    function sendVote(voteObject) {
+      httpGet("/authed/vote?vote=" + btoa(JSON.stringify(voteObject)), function (response, status) {
+        let receiverZone = document.getElementById('receiverZone');
+        receiverZone.innerHTML = '';
+        if (status === 200) {
+          let alert = document.createElement('div');
+          alert.className = "alert alert-success";
+          alert.textContent = "Your vote has been saved, thank you for participating.";
+          receiverZone.appendChild(alert);
+        } else {
+          console.log(response);
+          let responseObject = JSON.parse(response);
+          if (!responseObject.errors) {
+            let alert = document.createElement('div');
+            alert.className = "alert alert-danger";
+            alert.textContent = "Something went wrong.";
+            receiverZone.appendChild(alert);
+          } else {
+            let errors = responseObject.errors;
+            let alert = document.createElement('div');
+            alert.className = "alert alert-danger";
+            alert.innerHTML = "Something went wrong: <ul>" + errors.map(error => "<li>" + error.title + "</li>") + "</ul>";
+            receiverZone.appendChild(alert);
+          }
+        }
+
+        let returnButton = document.createElement('button');
+        returnButton.className = "btn btn-primary";
+        returnButton.textContent = "Back to overview";
+        returnButton.addEventListener("click", function (e) {
+          location.reload(true);
+        });
+
+        receiverZone.appendChild(returnButton);
+      });
+    }
+
+    /// Parse subjects
+    function receiveSubjects(json) {
+      let subjects = JSON.parse(json).data;
+      let receiver = document.getElementById('receiverZone');
+      receiver.innerHTML = '';
+
+      let pickSubjectH = document.createElement('h2');
+      pickSubjectH.textContent = "Currently available votes";
+      receiver.appendChild(pickSubjectH);
+
+      if (subjects.length <= 0) {
+        pickSubjectH.textContent = "You have no voting subjects available.";
+        return;
+      }
+
+      for (let i = 0; i < subjects.length; i++) {
+        let card = document.createElement("div");
+        card.className = "card";
+        receiver.append(card);
+
+        let cardHeader = document.createElement("div");
+        cardHeader.className = "card-header";
+        cardHeader.innerHTML = subjects[i].attributes.subject;
+        card.append(cardHeader);
+
+        let cardBody = document.createElement("div");
+        cardBody.className = "card-body";
+        card.append(cardBody);
+
+        let cardText = document.createElement("p");
+        cardText.className = "card-text";
+        cardText.innerHTML = subjects[i].attributes.description;
+
+        if (subjects[i].attributes.topicUrl) {
+          cardText.innerHTML += ' <a href="' + subjects[i].attributes.topicUrl + '" target="_blank">More information</a>';
+        }
+        cardBody.append(cardText);
+
+        let selectButton = document.createElement('button');
+        selectButton.textContent = "Select";
+        selectButton.className = "btn btn-primary";
+        selectButton.addEventListener("click", function (e) {
+          selectSubject(subjects[i]);
+        });
+        cardBody.appendChild(selectButton);
+      }
+    }
+  </script>
+</head>
+<body>
+<div data-section-wrapper="1" style="background:#f2f2f2;">
+  <div data-section="1">
+    <div data-slot-container="1"
+         style="background: url('res/images/page-bg.jpg') no-repeat center top;
+               background-size: cover; padding: 40px"
+         class="ui-sortable">
+      <div data-slot="image" style="padding: 20px 0 0 0; text-align: center">
+        <img width="100" height="100" src="res/images/logo.png"
+             class="fr-view"/>
+      </div>
+      <div data-slot="text" style="text-align: center; color: #fff">
+        <h2>Forged Alliance Forever</h2>
+      </div>
+      <div data-slot-container="1"
+           style="background: #fff; margin: 0 auto 50px auto; padding: 40px; min-height: 300px; max-width: 1280px;">
+
+        <div id="receiverZone">
+          <div style="text-align: center">
+            <p>
+              Fetching vote subjects...
+            </p>
+            <p>
+              <img src="res/images/pokabu-loading.gif">
+            </p>
+            <p>
+              This should only take a few seconds.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div data-section-wrapper="1" class="footer" style="background: black; padding: 3em; text-align: center">
+  <div data-section="1" class="w320">
+    <div data-slot-container="1" class="ui-sortable">
+      <div data-slot="text">
+        <a href="https://www.patreon.com/faf" target="_blank"><i class="fab fa-patreon"></i></a>
+        <a href="https://www.facebook.com/ForgedAllianceForever/" target="_blank"><i
+            class="fab fa-facebook"></i></a>
+        <a href="https://twitter.com/falliancef" target="_blank"><i class="fab fa-twitter"></i></a>
+        <a href="https://github.com/FAForever" target="_blank"><i class="fab fa-github"></i></a>
+        <a href="https://www.youtube.com/channel/UCkAWiUu4QE172kv-ZuyR42w" target="_blank"><i
+            class="fab fa-youtube"></i></a>
+      </div>
+    </div>
+    <div data-slot-container="1" class="ui-sortable" style="margin-top: 2em">
+      <div data-slot="text">
+        <a href="https://www.faforever.com" target="_blank" style="text-transform: uppercase;">Website</a>
+        |
+        <a href="mailto:support@faforever.com" target="_blank" style="text-transform: uppercase;">Contact Us</a>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
 </html>

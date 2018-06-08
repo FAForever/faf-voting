@@ -1,7 +1,7 @@
 {
-  "name": "votemachine",
-  "version": "1.0.3",
-  "description": "FAF voting machine",
+  "name": "faf-voting",
+  "version": "1.1.0",
+  "description": "FAF voting application",
   "main": "vote.js",
   "dependencies": {
     "express": "^4.16.3",
@@ -24,12 +24,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Rackover/FAF-VotingMachine.git"
+    "url": "git+https://github.com/FAForever/faf-voting"
   },
   "author": "rackover@racknet.noip.me",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/Rackover/FAF-VotingMachine/issues"
+    "url": "https://github.com/FAForever/faf-voting/issues"
   },
-  "homepage": "https://github.com/Rackover/FAF-VotingMachine#readme"
+  "homepage": "https://github.com/FAForever/faf-voting#readme"
 }
