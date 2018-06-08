@@ -115,7 +115,6 @@ app.get('/authed/getSubjects',
 );
 
 app.get('/authed/getQuestions',
-	passport.authenticate('oauth2'),
 	function (req, res){
 		if (req.isAuthenticated()){
 			const token = req.user.data.attributes.token;
@@ -147,7 +146,6 @@ app.get('/authed/getQuestions',
 );
 
 app.get('/authed/vote',
-	passport.authenticate('oauth2'),
 	function (req, res){
 		if (req.isAuthenticated()){
 			const vote = req.query.vote;
