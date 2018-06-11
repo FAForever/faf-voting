@@ -44,7 +44,7 @@ body {
   -webkit-text-size-adjust: none;
   width: 100%;
   height: 100%;
-  color: #37302d;
+  color: #353535;
   background: #353535;
 }
 
@@ -61,16 +61,21 @@ h3 {
 }
 
 .footer {
-  color: #ddd;
+  color: #dddddd;
+  background-color: #353535;
 }
 
 .footer a {
   transition: transform .2s;
 }
 
-.footer a, .footer a:link, .footer a:visited, .footer a:focus, .footer a:hover, .footer a:active {
+.footer a, .footer a:link, .footer a:visited, .footer a:focus, .footer a:active {
   font-size: 12px;
   color: #ddd;
+}
+
+.footer a:hover {
+  color: grey;
 }
 
 .footer a .fa, .footer a .fab {
@@ -82,4 +87,77 @@ h3 {
 select.form-control {
   max-width: 360px;
   display: inline-block;
+}
+
+ul.top-navigation {
+  text-align: left;
+  overflow: auto;
+  width: 100%;
+  max-width: 100vw;
+  white-space: nowrap;
+  display: table;
+  list-style: none;
+  margin: 0;
+
+}
+
+ul.top-navigation a {
+  padding: 15px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #ddd;
+  transition: color 50ms;
+  display: inline-block;
+  text-decoration: none;
+  background-color: transparent;
+}
+
+ul.top-navigation a:hover {
+  text-decoration: none;
+  outline: none;
+  color: gray;
+}
+
+ul.top-navigation li {
+  display: inline-block;
+  padding: 5px;
+  border: 0;
+  font-size: 100%;
+  font: inherit;
+  vertical-align: baseline;
+}
+
+.card {
+  margin: 10px;
+}
+
+.subject-property {
+  font-weight: bold;
+}
+
+.top-navigator-container {
+  background-color: #353535;
+  z-index: 999;
+  position: sticky;
+  top: 0;
+}
+
+/* winner-table layout*/
+.winners-table {
+  width: 100%;
+}
+
+.winner-row {
+  display: -webkit-flex; /* Safari */
+  display: flex;
+  margin: 10px 5px 5px;
+}
+
+.winner-headRow {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.03);
+}
+
+.winner-row div {
+  -webkit-flex: 1; /* Safari 6.1+ */
+  flex: 1;
 }

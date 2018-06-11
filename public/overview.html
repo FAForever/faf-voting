@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>FAF Voting App</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+          integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link rel="icon" href="favicon.png"/>
+    <link rel="stylesheet" href="res/style/style.css" type="text/css"/>
+
+    <script src="res/scripts/httpget.js"></script>
+    <script>
+
+        /// On load, immediatly fetch voting subjects
+        window.onload = function (e) {
+            httpGet("/authed/getSubjects", receiveSubjects);
+        };
+
+        /// Parse all subjects
+        function receiveSubjects(json) {
+            let root = JSON.parse(json);
+            let subjects = root.data;
+            let receiver = document.getElementById('receiverZone');
+            receiver.innerHTML = '';
+
+            let pickSubjectH = document.createElement('h2');
+            pickSubjectH.textContent = "Votes overview";
+            receiver.appendChild(pickSubjectH);
+
+            if (subjects.length <= 0) {
+                pickSubjectH.textContent = "There are no votes";
+                return;
+            }
+
+            for (let i = 0; i < subjects.length; i++) {
+                let card = document.createElement("div");
+                card.className = "card";
+                receiver.append(card);
+
+                let cardHeader = document.createElement("div");
+                cardHeader.className = "card-header";
+                let subject = subjects[i];
+                cardHeader.textContent = subject.attributes.subject;
+                card.append(cardHeader);
+
+                let cardBody = document.createElement("div");
+                cardBody.className = "card-body";
+                card.append(cardBody);
+
+                let cardText = document.createElement("p");
+                cardText.className = "card-text";
+                cardText.innerHTML = subject.attributes.description;
+
+                if (subject.attributes.topicUrl) {
+                    cardText.innerHTML += ' <a href="' + subject.attributes.topicUrl + '" target="_blank">More information</a>';
+                }
+
+                cardBody.append(cardText);
+
+                cardBody.innerHTML += '<hr>';
+
+
+                let startDate = new Date(subject.attributes.beginOfVoteTime);
+                let startDateContainer = document.createElement("div");
+                let startText = document.createElement("p");
+                startText.innerHTML = "<span class='subject-property'>Start of vote: </span>" + startDate.toUTCString();
+                startDateContainer.appendChild(startText);
+                cardBody.appendChild(startDateContainer);
+
+                let endDate = new Date(subject.attributes.endOfVoteTime);
+                let endOfVoteContainer = document.createElement("div");
+                let text = document.createElement("p");
+                text.innerHTML = "<span class='subject-property'>End of vote: </span>" + endDate.toUTCString();
+                endOfVoteContainer.appendChild(text);
+                cardBody.appendChild(endOfVoteContainer);
+
+
+                let numberOfVotes = subject.attributes.numberOfVotes;
+                if (numberOfVotes != 0) {
+                    let numberOfVotesContainer = document.createElement("div");
+                    let numberOfVotesText = document.createElement("p");
+                    numberOfVotesText.innerHTML = "<span class='subject-property'>Number of votes given: </span>" + numberOfVotes;
+                    numberOfVotesContainer.appendChild(numberOfVotesText);
+                    cardBody.appendChild(numberOfVotesContainer);
+                }
+
+                let questionsRelationship = subject.relationships.votingQuestions.data;
+                let questionsIncluded = root.included;
+                let questionIds = [];
+                for (let y = 0; y < questionsRelationship.length; y++) {
+                    questionIds.push(parseInt(questionsRelationship[y].id));
+                }
+
+                questionsIncluded = questionsIncluded.filter(question => question.type === "votingQuestion" && questionIds.includes(parseInt(question.id)));
+
+                let tableArray = [];
+                let winnersAvailable = false;
+                for (x in questionsIncluded) {
+                    let questionIncluded = questionsIncluded[x];
+                    let winners = questionIncluded.relationships.winners.data;
+                    let winnerIds = winners.map(winner => winner.id);
+
+                    let winnersIncluded = root.included;
+                    winnersIncluded = winnersIncluded.filter(element => element.type === "votingChoice" && winnerIds.includes(element.id));
+                    winnersIncluded = winnersIncluded.map(winner => winner.attributes.choiceText);
+                    if (winnersIncluded.length !== 0) {
+                        winnersAvailable = true;
+                    }
+                    tableArray.push([questionIncluded.attributes.question, winnersIncluded]);
+                }
+
+                if (winnersAvailable) {
+                    let winnersTable = document.createElement("div");
+                    winnersTable.className = 'winners-table';
+                    let headRow = document.createElement("div");
+                    headRow.className = "winner-headRow winner-row";
+                    let winnerTopColumn = document.createElement("div");
+                    let questionTopColumn = document.createElement("div");
+                    winnerTopColumn.innerText = "Winnner";
+                    questionTopColumn.innerText = "Question";
+                    headRow.appendChild(questionTopColumn);
+                    headRow.appendChild(winnerTopColumn);
+                    winnersTable.appendChild(headRow);
+                    for (x in tableArray) {
+                        let tableElement = tableArray[x];
+                        let row = document.createElement("div");
+                        row.className = "winner-row";
+                        let questionColumn = document.createElement("div");
+                        let winnersColumn = document.createElement("div");
+                        questionColumn.innerText = tableElement[0];
+                        winnersColumn.innerText = tableElement[1];
+                        row.appendChild(questionColumn);
+                        row.appendChild(winnersColumn);
+                        winnersTable.appendChild(row);
+                    }
+                    cardBody.appendChild(winnersTable);
+                }
+
+            }
+        }
+    </script>
+</head>
+<body>
+<div class="top-navigator-container" data-section-wrapper="1">
+    <ul class="top-navigation">
+        <li><a href="/overview">Overview</a></li>
+        <li><a href="/vote">Vote</a></li>
+    </ul>
+</div>
+<div data-section-wrapper="1" style="background:#f2f2f2;">
+    <div data-section="1">
+        <div data-slot-container="1"
+             style="background: url('res/images/page-bg.jpg') no-repeat center top;
+               background-size: cover; padding: 40px"
+             class="ui-sortable">
+            <div data-slot="image" style="padding: 20px 0 0 0; text-align: center">
+                <img width="100" height="100" src="res/images/logo.png"
+                     class="fr-view"/>
+            </div>
+            <div data-slot="text" style="text-align: center; color: #fff">
+                <h2>Forged Alliance Forever</h2>
+            </div>
+            <div data-slot-container="1"
+                 style="background: #fff; margin: 0 auto 50px auto; padding: 40px; min-height: 300px; max-width: 1280px;">
+
+                <div id="receiverZone">
+                    <div style="text-align: center">
+                        <p>
+                            Fetching vote subjects...
+                        </p>
+                        <p>
+                            <img src="res/images/pokabu-loading.gif">
+                        </p>
+                        <p>
+                            This should only take a few seconds.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div data-section-wrapper="1" class="footer" style="background-color: #353535; padding: 3em; text-align: center">
+    <div data-section="1" class="w320">
+        <div data-slot-container="1" class="ui-sortable">
+            <div data-slot="text">
+                <a href="https://www.patreon.com/faf" target="_blank"><i class="fab fa-patreon"></i></a>
+                <a href="https://www.facebook.com/ForgedAllianceForever/" target="_blank"><i
+                        class="fab fa-facebook"></i></a>
+                <a href="https://twitter.com/falliancef" target="_blank"><i class="fab fa-twitter"></i></a>
+                <a href="https://github.com/FAForever" target="_blank"><i class="fab fa-github"></i></a>
+                <a href="https://www.youtube.com/channel/UCkAWiUu4QE172kv-ZuyR42w" target="_blank"><i
+                        class="fab fa-youtube"></i></a>
+            </div>
+        </div>
+        <div data-slot-container="1" class="ui-sortable" style="margin-top: 2em">
+            <div data-slot="text">
+                <a href="https://www.faforever.com" target="_blank" style="text-transform: uppercase;">Website</a>
+                |
+                <a href="mailto:support@faforever.com" target="_blank" style="text-transform: uppercase;">Contact Us</a>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
