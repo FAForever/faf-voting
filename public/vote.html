@@ -8,15 +8,16 @@
   <link rel="stylesheet" href="res/style/style.css" type="text/css"/>
 
   <script src="res/scripts/httpget.js"></script>
-  <script src="res/scripts/shuffle.js"></script>
+  <script src="res/scripts/sortOrShuffle.js"></script>
+  <script src="res/scripts/searchParentQuestion.js"></script>
   <script>
 
     let votingSubjectId;
 
     /// On load, immediatly fetch voting subjects
     window.onload = function (e) {
-      httpGet("/authed/getSubjects", receiveSubjects);
-    }
+        httpGet("/authed/getSubjectsAbleToVote", receiveSubjects);
+    };
 
     /// GET questions
     function selectSubject(subject) {
@@ -40,16 +41,18 @@
         return;
       }
 
-      let questions = {};
+        let questions = [];
 
       /// Populating questions
       for (let i = 0; i < parsedQuestions.length; i++) {
         const dataSet = parsedQuestions[i];
-        questions[dataSet.id] = {
+          questions[i] = {
+              "id": dataSet.id,
           "maxAnswers": dataSet.attributes.maxAnswers,
           "question": dataSet.attributes.question,
           "description": dataSet.attributes.description,
-          "updateTime": dataSet.attributes.updateTime
+              "updateTime": dataSet.attributes.updateTime,
+              "ordinal": dataSet.attributes.ordinal
         };
       }
 
@@ -57,13 +60,15 @@
       for (let i = 0; i < answers.length; i++) {
         const answer = answers[i];
         const parentQuestionId = answer.relationships.votingQuestion.data.id;
-        if (questions[parentQuestionId]["answers"] === undefined) {
-          questions[parentQuestionId]["answers"] = [];
+          let question = searchPartentQuestion(questions, parentQuestionId);
+          if (question["answers"] === undefined) {
+              question["answers"] = [];
         }
-        questions[parentQuestionId]["answers"].push({
+          question["answers"].push({
           "id": answer.id,
           "choiceText": answer.attributes.choiceText,
-          "description": answer.attributes.description
+              "description": answer.attributes.description,
+              "ordinal": answer.attributes.ordinal
         });
       }
       displayQuestions(questions, subject);
@@ -71,6 +76,9 @@
 
     /// Display
     function displayQuestions(questions, subject) {
+        questions.sort(function (a, b) {
+            return a.ordinal - b.ordinal;
+        });
       let receiver = document.getElementById('receiverZone');
       receiver.innerHTML = '';
 
@@ -105,7 +113,7 @@
         cardText.innerHTML = thisQuestion.description;
         cardBody.append(cardText);
 
-        thisQuestion.answers = shuffle(thisQuestion.answers);
+          thisQuestion.answers = sortOrShuffle(thisQuestion.answers);
 
         for (k in thisQuestion.answers) {
           const answer = thisQuestion.answers[k];
@@ -141,7 +149,7 @@
           answerSelect.id = "question-" + i + "-ordinal-" + j;
           answerSelects.push(answerSelect);
 
-          thisQuestion.answers = shuffle(thisQuestion.answers);
+            thisQuestion.answers = sortOrShuffle(thisQuestion.answers);
 
           for (k in thisQuestion.answers) {
             const answer = thisQuestion.answers[k];
@@ -256,7 +264,7 @@
 
         let returnButton = document.createElement('button');
         returnButton.className = "btn btn-primary";
-        returnButton.textContent = "Back to overview";
+          returnButton.textContent = "Vote overview page";
         returnButton.addEventListener("click", function (e) {
           location.reload(true);
         });
@@ -315,6 +323,12 @@
   </script>
 </head>
 <body>
+<div class="top-navigator-container" data-section-wrapper="1">
+  <ul class="top-navigation">
+    <li><a href="/overview">Overview</a></li>
+    <li><a href="/vote">Vote</a></li>
+  </ul>
+</div>
 <div data-section-wrapper="1" style="background:#f2f2f2;">
   <div data-section="1">
     <div data-slot-container="1"
@@ -348,17 +362,17 @@
     </div>
   </div>
 </div>
-<div data-section-wrapper="1" class="footer" style="background: black; padding: 3em; text-align: center">
+<div data-section-wrapper="1" class="footer" style="background-color: #353535; padding: 3em; text-align: center">
   <div data-section="1" class="w320">
     <div data-slot-container="1" class="ui-sortable">
       <div data-slot="text">
         <a href="https://www.patreon.com/faf" target="_blank"><i class="fab fa-patreon"></i></a>
         <a href="https://www.facebook.com/ForgedAllianceForever/" target="_blank"><i
-            class="fab fa-facebook"></i></a>
+                class="fab fa-facebook"></i></a>
         <a href="https://twitter.com/falliancef" target="_blank"><i class="fab fa-twitter"></i></a>
         <a href="https://github.com/FAForever" target="_blank"><i class="fab fa-github"></i></a>
         <a href="https://www.youtube.com/channel/UCkAWiUu4QE172kv-ZuyR42w" target="_blank"><i
-            class="fab fa-youtube"></i></a>
+                class="fab fa-youtube"></i></a>
       </div>
     </div>
     <div data-slot-container="1" class="ui-sortable" style="margin-top: 2em">

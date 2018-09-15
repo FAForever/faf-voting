@@ -1,7 +1,7 @@
 const request = require('request');
 const fs = require('fs');
 const express = require('express');
-const {validationResult} = require('express-validator/check')
+const {validationResult} = require('express-validator/check');
 const {sanitizeBody} = require('express-validator/filter');
 const expressValidator = require('express-validator');
 const bodyParser = require('body-parser');
@@ -71,45 +71,82 @@ passport.use(
 app.get('/auth',
   passport.authenticate('oauth2'),
   function (req, res) {
-    console.log('Successful authentication, redirect home.')
-    res.redirect('/');
+      console.log('Successful authentication, redirect home.');
+      res.redirect('/vote');
   }
 );
+
 app.get('/',
-  function (req, res, next) {
-    if (req.isAuthenticated()) {
-      res.sendFile(path.join(__dirname, './public', 'vote.html'));
-    } else {
-      res.redirect("/login");
+    function (req, res, next) {
+        res.redirect("/overview");
     }
-  }
+);
+
+app.get('/overview',
+    function (req, res, next) {
+        res.sendFile(path.join(__dirname, './public', 'overview.html'));
+    });
+
+app.get('/vote',
+    function (req, res, next) {
+        if (req.isAuthenticated()) {
+            res.sendFile(path.join(__dirname, './public', 'vote.html'));
+        } else {
+            res.redirect("/login");
+        }
+    }
 );
 
 app.get('/authed/getSubjects',
-  function (req, res) {
-    if (req.isAuthenticated()) {
-      const token = req.user.data.attributes.token;
-
-      request({
-          url: API_URL + "/voting/votingSubjectsAbleToVote",
-          method: 'GET',
-          headers: {
-            "Authorization": "Bearer " + token
-          }
-        },
-        function (e, r, returnBody) {
-          if (r.statusCode !== 200) {
-            console.log(returnBody);
-            res.redirect("/login");
-            return;
-          }
-          res.setHeader('Content-Type', 'application/json');
-          res.send(returnBody);
-        });
-    } else {
-      res.redirect("/login");
+    function (req, res) {
+        request({
+                url: API_URL + "/data/votingSubject?include=votingQuestions,votingQuestions.votingChoices,votingQuestions.winners",
+                method: 'GET',
+            },
+            function (e, r, returnBody) {
+                if (e !== null) {
+                    console.log(e);
+                    return;
+                }
+                if (r.statusCode !== 200) {
+                    console.log(returnBody);
+                    return;
+                }
+                res.setHeader('Content-Type', 'application/json');
+                res.send(returnBody);
+            });
     }
-  }
+);
+
+app.get('/authed/getSubjectsAbleToVote',
+    function (req, res) {
+        if (req.isAuthenticated()) {
+            const token = req.user.data.attributes.token;
+
+            request({
+                    url: API_URL + "/voting/votingSubjectsAbleToVote",
+                    method: 'GET',
+                    headers: {
+                        "Authorization": "Bearer " + token
+                    }
+                },
+                function (e, r, returnBody) {
+                    if (e !== null) {
+                        console.log(e);
+                        return;
+                    }
+                    if (r.statusCode !== 200) {
+                        console.log(returnBody);
+                        res.redirect("/login");
+                        return;
+                    }
+                    res.setHeader('Content-Type', 'application/json');
+                    res.send(returnBody);
+                });
+        } else {
+            res.redirect("/login");
+        }
+    }
 );
 
 app.get('/authed/getQuestions',
