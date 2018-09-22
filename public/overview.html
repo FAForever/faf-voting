@@ -83,6 +83,15 @@
                     cardBody.appendChild(numberOfVotesContainer);
                 }
 
+                let minGamesToVote = subject.attributes.minGamesToVote;
+                if (minGamesToVote !== 0) {
+                    let minGamesToVoteContainer = document.createElement("div");
+                    let minGamesToVoteText = document.createElement("p");
+                    minGamesToVoteText.innerHTML = "<span class='subject-property'>Number of games to be able to vote: </span>" + minGamesToVote;
+                    minGamesToVoteContainer.appendChild(minGamesToVoteText);
+                    cardBody.appendChild(minGamesToVoteContainer);
+                }
+
                 let questionsRelationship = subject.relationships.votingQuestions.data;
                 let questionsIncluded = root.included;
                 let questionIds = [];
