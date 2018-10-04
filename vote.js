@@ -21,7 +21,10 @@ const CLIENT_ID = process.env.CLIENT_ID,
 app.use(session({
     "secret": process.env.SESSION_SECRET,
     "resave": true,
-    "saveUninitialized": true
+    "saveUninitialized": true,
+    "cookie": {
+        "maxAge": 3600000 * 12 //an api token is valid for 12h
+    }
   })
 );
 
