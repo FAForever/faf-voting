@@ -1,0 +1,78 @@
+<html>
+
+<head>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link rel="icon" href="favicon.png" />
+    <link rel="stylesheet" href="res/style/style.css" type="text/css" />
+
+    <script src="res/scripts/httpget.js"></script>
+</head>
+
+<div class="top-navigator-container" data-section-wrapper="1">
+    <ul class="top-navigation">
+        <li><a href="/overview">Overview</a></li>
+        <li><a href="/vote">Vote</a></li>
+        <li><a href="C:\Users\jordan\faf-voting\public\login.html">Login</a></li>
+    </ul>
+</div>
+
+<div style="background: url('res/images/page-bg.jpg') no-repeat center top;
+      background-size: cover; padding: 40px">
+    <div data-slot="image" style="padding: 20px 0 0 0; text-align: center">
+        <img width="100" height="100" src="res/images/logo.png" class="fr-view" />
+    </div>
+    <div data-slot="text" style="text-align: center; color: #fff">
+        <h2>Forged Alliance Forever</h2>
+    </div>
+
+    <div class="login" data-section-wrapper="1" style="background: #fff; margin: 0 auto 50px auto; padding: 40px; min-height: 300px; max-width: 1280px; text-align: center;">
+        <h4>FAForever Login</h4>
+        <div data-section="1" >
+            <form action="/login" method="POST">
+                <hr />
+                <div data-slot-container="1" >
+                    <div data-slot-container="text" >
+                        <input id="username" name="username" placeholder="Username" />
+                    </div>
+                </div>
+                <div data-slot-container="1">
+                    <div data-slot="text">
+                        <input type="password" id="password" name="password"  placeholder="Password" />
+                    </div>
+                </div>
+                &nbsp;&nbsp;
+                <div data-slot-container="1" >
+                    <div data-slot="button" >
+                        <button type="submit" class="btn btn-danger">Log in</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+<div data-section-wrapper="1" class="footer" style="background-color: #353535; padding: 3em; text-align: center">
+    <div data-section="1" class="w320">
+        <div data-slot-container="1" class="ui-sortable">
+            <div data-slot="text">
+                <a href="https://www.patreon.com/faf" target="_blank"><i class="fab fa-patreon"></i></a>
+                <a href="https://www.facebook.com/ForgedAllianceForever/" target="_blank"><i
+                        class="fab fa-facebook"></i></a>
+                <a href="https://twitter.com/falliancef" target="_blank"><i class="fab fa-twitter"></i></a>
+                <a href="https://github.com/FAForever" target="_blank"><i class="fab fa-github"></i></a>
+                <a href="https://www.youtube.com/channel/UCkAWiUu4QE172kv-ZuyR42w" target="_blank"><i
+                        class="fab fa-youtube"></i></a>
+            </div>
+        </div>
+        <div data-slot-container="1" class="ui-sortable" style="margin-top: 2em">
+            <div data-slot="text">
+                <a href="https://www.faforever.com" target="_blank" style="text-transform: uppercase;">Website</a>
+                |
+                <a href="mailto:support@faforever.com" target="_blank" style="text-transform: uppercase;">Contact Us</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+</html>

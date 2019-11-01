@@ -129,6 +129,7 @@ ul.top-navigation li {
 
 .card {
   margin: 10px;
+  
 }
 
 .subject-property {
@@ -160,4 +161,10 @@ ul.top-navigation li {
 .winner-row div {
   -webkit-flex: 1; /* Safari 6.1+ */
   flex: 1;
+}
+
+.btn-danger {
+  color: #fff;
+  background-color: #F04124;
+  border-color: #ea2f10;
 }
