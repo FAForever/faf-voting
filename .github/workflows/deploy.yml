@@ -3,7 +3,7 @@ name: FAF Voting CI
 on:
   push:
     tags:
-      - v.*
+      - v*
 
 jobs:
   build:
