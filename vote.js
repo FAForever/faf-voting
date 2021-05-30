@@ -1,9 +1,5 @@
 const request = require('request');
-const fs = require('fs');
 const express = require('express');
-const {validationResult} = require('express-validator/check');
-const {sanitizeBody} = require('express-validator/filter');
-const expressValidator = require('express-validator');
 const bodyParser = require('body-parser');
 const session = require('express-session');
 
@@ -31,7 +27,6 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 app.use(bodyParser.urlencoded({extended: false}));
-app.use(expressValidator());
 
 app.use("/res", express.static(__dirname + '/public/res'));
 
