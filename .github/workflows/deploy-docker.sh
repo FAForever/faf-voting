@@ -5,4 +5,5 @@ export REPO=faforever/faf-voting
 echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
 docker build -t ${IMAGE_TAG} .
 docker tag ${IMAGE_TAG} ${REPO}:"${RELEASE_VERSION}"
+docker tag ${IMAGE_TAG} ${REPO}:latest
 docker push ${REPO}
