@@ -98,7 +98,7 @@ app.get('/vote',
 app.get('/authed/getSubjects',
     function (req, res) {
         request({
-                url: API_URL + "/data/votingSubject?include=votingQuestions,votingQuestions.votingChoices,votingQuestions.winners",
+                url: API_URL + "/data/votingSubject?include=votingQuestions,votingQuestions.votingChoices,votingQuestions.winners&sort=-createTime",
                 method: 'GET',
             },
             function (e, r, returnBody) {
