@@ -1,24 +1,29 @@
+// Simulate config options from your production environment by
+// customising the .env file in your project's root folder.
+require('dotenv').config();
+
 const request = require('request');
 const express = require('express');
 const bodyParser = require('body-parser');
 const session = require('express-session');
 
 const passport = require('passport');
-const OAuth2Strategy = require('passport-oauth2');
+const OidcStrategy = require('passport-openidconnect');
 const app = express();
 const path = require('path');
 
-const API_URL = process.env.API_URL;
+const API_URL = process.env.API_URL,
+  OAUTH_URL = process.env.OAUTH_URL;
 
 const CLIENT_ID = process.env.CLIENT_ID,
   CLIENT_SECRET = process.env.CLIENT_SECRET,
   CALLBACK_URL = process.env.CALLBACK_URL || "https://voting.faforever.com/auth";
 
 app.use(session({
-    "secret": process.env.SESSION_SECRET,
-    "resave": true,
-    "saveUninitialized": true,
-    "cookie": {
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
         "maxAge": 3600000 * 12 //an api token is valid for 12h
     }
   })
@@ -40,9 +45,11 @@ passport.deserializeUser(function (user, done) {
 });
 
 passport.use(
-  new OAuth2Strategy({
-      authorizationURL: API_URL + '/oauth/authorize',
-      tokenURL: API_URL + '/oauth/token',
+  new OidcStrategy({
+      issuer: OAUTH_URL + '/',
+      tokenURL: OAUTH_URL + '/oauth2/token',
+      authorizationURL: OAUTH_URL + '/oauth2/auth',
+      userInfoURL: OAUTH_URL + '/userinfo?schema=openid',
       clientID: CLIENT_ID,
       clientSecret: CLIENT_SECRET,
       callbackURL: CALLBACK_URL
