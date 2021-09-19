@@ -45,6 +45,7 @@ passport.deserializeUser(function (user, done) {
 });
 
 passport.use(
+    'faforever',
   new OidcStrategy({
       issuer: OAUTH_URL + '/',
       tokenURL: OAUTH_URL + '/oauth2/token',
@@ -54,7 +55,7 @@ passport.use(
       clientSecret: CLIENT_SECRET,
       callbackURL: CALLBACK_URL
     },
-    function (accessToken, refreshToken, profile, done) {
+    function (iss, sub, profile, jwtClaims, accessToken, refreshToken, params, verified) {
       request.get(
         {
           url: API_URL + '/me',
@@ -63,18 +64,18 @@ passport.use(
         function (e, r, body) {
           if (r.statusCode !== 200) {
             console.log("Auth failure: " + r.statusCode);
-            return done(null);
+            return verified(null);
           }
           let user = JSON.parse(body);
           user.data.attributes.token = accessToken;
-          return done(null, user);
+          return verified(null, user);
         }
       );
     })
 );
 
-app.get('/auth',
-  passport.authenticate('oauth2'),
+app.get(['/auth', '/login'],
+  passport.authenticate('faforever'),
   function (req, res) {
       console.log('Successful authentication, redirect home.');
       res.redirect('/vote');
@@ -217,10 +218,6 @@ app.get('/authed/vote',
     }
   }
 );
-
-app.get('/login', function (req, res) {
-  res.redirect(API_URL + "/oauth/authorize?client_id=" + CLIENT_ID + "&response_type=code&redirect_uri=" + encodeURIComponent(CALLBACK_URL));
-});
 
 app.listen(3000, function () {
   console.log('Listening on port 3000');
