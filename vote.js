@@ -53,7 +53,8 @@ passport.use(
       userInfoURL: OAUTH_URL + '/userinfo?schema=openid',
       clientID: CLIENT_ID,
       clientSecret: CLIENT_SECRET,
-      callbackURL: CALLBACK_URL
+      callbackURL: CALLBACK_URL,
+      scope: ['openid', 'public_profile', 'vote']
     },
     function (iss, sub, profile, jwtClaims, accessToken, refreshToken, params, verified) {
       request.get(
