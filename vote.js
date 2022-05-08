@@ -1,8 +1,6 @@
 // Simulate config options from your production environment by
 // customising the .env file in your project's root folder.
 require('dotenv').config();
-// Allow us to accept the token from hydra
-require('https').globalAgent.options.rejectUnauthorized = false;
 
 const request = require('request');
 const express = require('express');
